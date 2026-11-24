@@ -488,23 +488,28 @@
         }
 
         async function loadAllFromSupabase() {
-            if (!supabaseClient) {
-                state.contents = [...fallbackData.contents];
-                state.reviews = [...fallbackData.reviews];
-                renderAll();
-                return;
-            }
+  if (!supabaseClient) {
+    state.contents = [...fallbackData.contents];
+    state.reviews = [...fallbackData.reviews];
+    renderAll();
+    return;
+  }
 
-            const [{ data: cData }, { data: rData }] = await Promise.all([
-                supabaseClient.from('contents').select('*').order('created_at', { ascending: false }),
-                supabaseClient.from('reviews').select('*').order('id', { ascending: true })
-            ]);
+  const [{ data: cData, error: cErr }, { data: rData, error: rErr }] = await Promise.all([
+    supabaseClient.from('contents').select('*').order('created_at', { ascending: false }),
+    supabaseClient.from('reviews').select('*').order('id', { ascending: true })
+  ]);
 
-            state.contents = cData || [];
-            state.reviews = rData || [];
-            renderAll();
-        }
+  if (cErr || rErr) {
+    const msg = (cErr || rErr).message || '조회 오류';
+    showToast('DB 오류: ' + msg);
+    console.error('Supabase error:', cErr || rErr);
+  }
 
+  state.contents = cData || [];
+  state.reviews = rData || [];
+  renderAll();
+}
         async function saveContentToSupabase() {
             const payload = {
                 channel: state.channel,
